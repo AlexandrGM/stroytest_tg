@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+    .timer-bar { transition: width 1s linear; }
+    .ans-card:active { transform: scale(0.98); background-color: #f8fafc; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 select-none overflow-x-hidden">
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfCgxY6-T024rpWNxGrYau5nXcXn60iZIHwtUpHfQO8Y4HQq6a1QhAZUMRS6mq8BC1Pg/exec";
+  </script>
+
+  <div id="login-page" class="min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 border border-slate-100">
+      <div class="text-center mb-10">
+        <h1 class="text-4xl font-black text-blue-700 tracking-tight">СтройТест</h1>
+        <p class="text-slate-400 mt-2 text-xs font-bold uppercase tracking-widest text-center">Аттестация 2026</p>
+      </div>
+      <div class="space-y-4">
+        <input id="inp-name" type="text" placeholder="Ваше ФИО" class="w-full p-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none transition-all">
+        <input id="inp-code" type="text" placeholder="Код доступа" class="w-full p-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none transition-all">
+        <button id="btn-go" onclick="runApp()" class="w-full bg-blue-600 text-white font-black py-5 rounded-2xl shadow-xl active:scale-95 transition-all">НАЧАТЬ ТЕСТ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="quiz-page" class="hidden min-h-screen flex flex-col bg-white">
+    <div class="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b p-5 max-w-2xl mx-auto w-full">
+      <div class="flex justify-between items-end mb-4">
+        <div>
+          <span id="txt-step" class="text-[10px] font-black text-blue-600 uppercase tracking-tighter text-left block">Загрузка...</span>
+          <div id="txt-score" class="text-xl font-black italic text-left">Баллы: 0</div>
+        </div>
+        <div class="text-right">
+          <span id="txt-timer" class="text-4xl font-black text-slate-700 leading-none">30</span>
+          <span class="text-[10px] text-slate-400 block font-bold uppercase">сек</span>
+        </div>
+      </div>
+      <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+        <div id="bar-timer" class="timer-bar bg-blue-500 h-full w-full"></div>
+      </div>
+    </div>
+
+    <main class="flex-1 p-6 max-w-2xl mx-auto w-full">
+      <h2 id="txt-q" class="text-2xl font-bold leading-tight mb-10 text-slate-800"></h2>
+      <div id="grid-ans" class="space-y-4 pb-12"></div>
+    </main>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.ready();
+
+    let state = { qs: [], cur: 0, score: 0, timer: null, left: 30, user: "", start: null, errors: [] };
+
+    function runApp() {
+      const n = document.getElementById('inp-name').value;
+      const c = document.getElementById('inp-code').value;
+      if(!n || !c) return alert("Введите данные!");
+
+      document.getElementById('btn-go').innerText = "ПРОВЕРКА...";
+      
+      fetch(`${SCRIPT_URL}?action=init&name=${encodeURIComponent(n)}&code=${encodeURIComponent(c)}`)
+        .then(r => r.json())
+        .then(res => {
+          if(res.error) {
+            alert(res.error);
+            document.getElementById('btn-go').innerText = "НАЧАТЬ ТЕСТ";
+            return;
+          }
+          state.qs = res.questions;
+          state.user = res.userName;
+          state.start = new Date();
+          document.getElementById('login-page').remove();
+          document.getElementById('quiz-page').classList.remove('hidden');
+          render();
+        }).catch(e => alert("Ошибка подключения к серверу."));
+    }
+
+    function render() {
+      const q = state.qs[state.cur];
+      document.getElementById('txt-step').innerText = `Вопрос ${state.cur + 1} из ${state.qs.length}`;
+      document.getElementById('txt-q').innerText = q[0];
+      const grid = document.getElementById('grid-ans');
+      grid.innerHTML = '';
+      
+      [1,2,3,4,5].forEach(i => {
+        const txt = q[i] ? q[i].toString().trim() : "";
+        if(txt) {
+          const div = document.createElement('div');
+          div.className = "ans-card p-6 border-2 border-slate-100 rounded-3xl cursor-pointer bg-slate-50 font-semibold text-slate-700 transition-all shadow-sm";
+          div.innerText = txt;
+          div.onclick = () => select(txt, q[6]);
+          grid.appendChild(div);
+        }
+      });
+      countdown(q[6]);
+    }
+
+    function countdown(correct) {
+      clearInterval(state.timer);
+      state.left = 30;
+      refreshUI();
+      state.timer = setInterval(() => {
+        state.left--;
+        refreshUI();
+        if(state.left <= 0) select("Таймаут", correct);
+      }, 1000);
+    }
+
+    function refreshUI() {
+      document.getElementById('txt-timer').innerText = state.left;
+      document.getElementById('bar-timer').style.width = (state.left / 30 * 100) + '%';
+      const bar = document.getElementById('bar-timer');
+      if(state.left <= 5) bar.className = "timer-bar bg-red-500 h-full w-full";
+      else bar.className = "timer-bar bg-blue-500 h-full w-full";
+    }
+
+    function select(val, correct) {
+      clearInterval(state.timer);
+      if(val.toString().trim() === correct.toString().trim()) {
+        state.score++;
+        document.getElementById('txt-score').innerText = `Баллы: ${state.score}`;
+      } else {
+        state.errors.push({ q: state.qs[state.cur][0], user: val, right: correct });
+      }
+      state.cur++;
+      if(state.cur < state.qs.length) render();
+      else finish();
+    }
+
+    function finish() {
+      const diff = Math.floor((new Date() - state.start) / 1000);
+      const timeStr = `${Math.floor(diff/60)} мин. ${diff%60} сек.`;
+
+      document.getElementById('quiz-page').innerHTML = `
+        <div class="flex flex-col h-screen items-center justify-center p-10 text-center bg-white">
+          <div class="text-8xl mb-8 animate-bounce">🚀</div>
+          <div class="text-3xl font-black text-slate-800 mb-2">ПОЛЕТ НОРМАЛЬНЫЙ!</div>
+          <div class="text-slate-400 font-medium text-center">Отправляем ваши результаты...</div>
+        </div>`;
+
+      const finalData = { userName: state.user, score: state.score, total: state.qs.length, timeSpent: timeStr, errors: state.errors };
+
+      fetch(`${SCRIPT_URL}?action=finish&data=${encodeURIComponent(JSON.stringify(finalData))}`)
+        .then(r => r.json())
+        .then(res => {
+          document.getElementById('quiz-page').innerHTML = `
+            <div class="flex flex-col h-screen items-center justify-center p-8 text-center bg-white">
+              <div class="text-7xl mb-6">🎯</div>
+              <h2 class="text-4xl font-black text-blue-700 mb-2">ГОТОВО!</h2>
+              <p class="text-slate-500 mb-10 font-medium">Ваш результат успешно зафиксирован.</p>
+              <div class="w-full max-w-sm bg-slate-900 text-white p-10 rounded-[3rem] shadow-2xl relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-4 opacity-10 text-8xl">🏆</div>
+                 <div class="relative z-10 text-sm font-bold text-blue-400 uppercase tracking-widest mb-2">Итоговый счет</div>
+                 <div class="relative z-10 text-6xl font-black mb-6 text-center">${state.score} / ${state.qs.length}</div>
+                 <div class="relative z-10 text-slate-400 font-bold uppercase text-[10px] text-center">Время прохождения: ${timeStr}</div>
+              </div>
+              <button onclick="tg.close()" class="mt-12 text-slate-400 font-bold uppercase tracking-widest text-xs">Закрыть</button>
+            </div>`;
+        });
+    }
+  </script>
+</body>
+</html>
