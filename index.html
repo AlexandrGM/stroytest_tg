@@ -3,59 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
-  
   <style>
-    html, body {
-      font-family: 'Inter', sans-serif;
-      -webkit-tap-highlight-color: transparent;
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-      position: fixed;
-    }
-
+    html, body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; height: 100%; width: 100%; overflow: hidden; position: fixed; }
     .timer-bar { transition: width 1s linear; }
-
-    main {
-      height: calc(100vh - 80px); /* Уменьшена высота шапки */
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding-bottom: 30px;
-    }
-
-    /* ПРАВКА: Цвет курсора (каретки) для полей ввода */
+    main { height: calc(100vh - 85px); overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 30px; }
     input { caret-color: #0039A6; }
-
     .ans-card:active { transform: scale(0.98); background-color: #F0F4F9; border-color: #0039A6; }
-    
     .bg-v-blue { background-color: #0039A6; }
     .text-v-blue { color: #0039A6; }
-    .border-v-blue { border-color: #0039A6; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 select-none">
+  <script>const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzffvbKhxSaefP5_dwRjh3O0M7dG40EzXU9Tcys-W21VIWxJw5reNgX9BU1yM5GTThN6w/exec";</script>
 
-  <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzffvbKhxSaefP5_dwRjh3O0M7dG40EzXU9Tcys-W21VIWxJw5reNgX9BU1yM5GTThN6w/exec";
-  </script>
-
-  <div id="login-page" class="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+  <div id="login-page" class="min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-md bg-white rounded-[2rem] shadow-2xl p-8 border border-slate-100">
-      <div class="text-center mb-8">
-        <h1 class="text-3xl font-black text-v-blue tracking-tight">СтройТест</h1>
-        <p class="text-slate-400 mt-1 text-[10px] font-bold uppercase tracking-widest text-center">Аттестация 2026</p>
-      </div>
+      <div class="text-center mb-8"><h1 class="text-3xl font-black text-v-blue tracking-tight">СтройТест</h1></div>
       <div class="space-y-3">
-        <input id="inp-name" type="text" placeholder="Введите ваше ФИО" 
-               class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none transition-all text-base">
-        <input id="inp-code" type="text" placeholder="Введите код доступа" 
-               class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none transition-all text-base">
-        <button id="btn-go" onclick="runApp()" 
-                class="w-full bg-v-blue text-white font-black py-4 rounded-xl shadow-lg active:scale-95 transition-all uppercase tracking-wider text-sm">Войти</button>
+        <input id="inp-name" type="text" placeholder="Введите ваше ФИО" class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none text-base">
+        <input id="inp-code" type="text" placeholder="Введите код доступа" class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none text-base">
+        <button id="btn-go" onclick="runApp()" class="w-full bg-v-blue text-white font-black py-4 rounded-xl shadow-lg uppercase text-sm">Войти</button>
       </div>
     </div>
   </div>
@@ -63,71 +33,51 @@
   <div id="quiz-page" class="hidden min-h-screen flex flex-col bg-white">
     <div class="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b px-5 py-3 max-w-2xl mx-auto w-full">
       <div class="flex justify-between items-end mb-2">
-        <div>
-          <span id="txt-step" class="text-[10px] font-black text-v-blue uppercase tracking-tight text-left block italic">Вопрос...</span>
-        </div>
+        <span id="txt-step" class="text-[10px] font-black text-v-blue uppercase italic">Вопрос...</span>
         <div class="text-right">
           <span id="txt-timer" class="text-2xl font-black text-slate-700 leading-none">30</span>
           <span class="text-[9px] text-slate-400 block font-bold uppercase">сек</span>
         </div>
       </div>
-      <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-        <div id="bar-timer" class="timer-bar bg-v-blue h-full w-full"></div>
-      </div>
+      <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div id="bar-timer" class="timer-bar bg-v-blue h-full w-full"></div></div>
     </div>
-
     <main class="p-5 max-w-2xl mx-auto w-full">
-      <h2 id="txt-q" class="text-xl font-bold leading-tight mb-5 text-slate-800"></h2>
+      <h2 id="txt-q" class="text-[22px] font-bold leading-tight mb-6 text-slate-800"></h2>
       <div id="grid-ans" class="space-y-2.5"></div>
     </main>
   </div>
 
   <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-    tg.ready();
-
+    const tg = window.Telegram.WebApp; tg.expand(); tg.ready();
     let state = { qs: [], cur: 0, score: 0, timer: null, left: 30, user: "", start: null, errors: [] };
 
     function runApp() {
       const n = document.getElementById('inp-name').value;
       const c = document.getElementById('inp-code').value;
       if(!n || !c) return alert("Введите данные!");
-
       document.getElementById('btn-go').innerText = "ЗАГРУЗКА...";
-      
       fetch(`${SCRIPT_URL}?action=init&name=${encodeURIComponent(n)}&code=${encodeURIComponent(c)}`)
-        .then(r => r.json())
-        .then(res => {
-          if(res.error) {
-            alert(res.error);
-            document.getElementById('btn-go').innerText = "ВОЙТИ";
-            return;
-          }
-          state.qs = res.questions;
-          state.user = res.userName;
-          state.start = new Date();
+        .then(r => r.json()).then(res => {
+          if(res.error) { alert(res.error); document.getElementById('btn-go').innerText = "ВОЙТИ"; return; }
+          state.qs = res.questions; state.user = res.userName; state.start = new Date();
           document.getElementById('login-page').classList.add('hidden');
           document.getElementById('quiz-page').classList.remove('hidden');
           render();
-        }).catch(e => alert("Ошибка связи."));
+        });
     }
 
     function render() {
       const q = state.qs[state.cur];
       document.getElementById('txt-step').innerText = `Вопрос ${state.cur + 1} из ${state.qs.length}`;
       document.getElementById('txt-q').innerText = q[0];
-      const grid = document.getElementById('grid-ans');
-      grid.innerHTML = '';
-      
+      const grid = document.getElementById('grid-ans'); grid.innerHTML = '';
       [1,2,3,4,5].forEach(i => {
         const txt = q[i] ? q[i].toString().trim() : "";
         if(txt) {
           const div = document.createElement('div');
-          // ПРАВКА: p-4 вместо p-6 для компактности
-          div.className = "ans-card p-4 border-2 border-slate-100 rounded-2xl cursor-pointer bg-slate-50 font-semibold text-slate-700 transition-all shadow-sm text-sm";
-          div.innerText = txt;
-          div.onclick = () => select(txt, q[6]);
+          // Шрифт ответов 16px (text-base) для iPhone
+          div.className = "ans-card p-4 border-2 border-slate-100 rounded-2xl cursor-pointer bg-slate-50 font-semibold text-slate-700 shadow-sm text-base";
+          div.innerText = txt; div.onclick = () => select(txt, q[6]);
           grid.appendChild(div);
         }
       });
@@ -135,75 +85,31 @@
     }
 
     function countdown(correct) {
-      clearInterval(state.timer);
-      state.left = 30;
-      refreshUI();
-      state.timer = setInterval(() => {
-        state.left--;
-        refreshUI();
-        if(state.left <= 0) select("Таймаут", correct);
-      }, 1000);
+      clearInterval(state.timer); state.left = 30; refreshUI();
+      state.timer = setInterval(() => { state.left--; refreshUI(); if(state.left <= 0) select("Таймаут", correct); }, 1000);
     }
 
     function refreshUI() {
       document.getElementById('txt-timer').innerText = state.left;
       document.getElementById('bar-timer').style.width = (state.left / 30 * 100) + '%';
-      const bar = document.getElementById('bar-timer');
-      if(state.left <= 5) bar.className = "timer-bar bg-red-600 h-full w-full";
-      else bar.className = "timer-bar bg-v-blue h-full w-full";
+      document.getElementById('bar-timer').className = state.left <= 5 ? "timer-bar bg-red-600 h-full w-full" : "timer-bar bg-v-blue h-full w-full";
     }
 
     function select(val, correct) {
       clearInterval(state.timer);
-      if(val.toString().trim() === correct.toString().trim()) {
-        state.score++;
-      } else {
-        state.errors.push({ q: state.qs[state.cur][0], user: val, right: correct });
-      }
+      if(val.toString().trim() !== correct.toString().trim()) state.errors.push({ q: state.qs[state.cur][0], user: val, right: correct });
+      else state.score++;
       state.cur++;
-      if(state.cur < state.qs.length) render();
-      else finish();
+      if(state.cur < state.qs.length) render(); else finish();
     }
 
     function finish() {
       const diff = Math.floor((new Date() - state.start) / 1000);
       const timeStr = `${Math.floor(diff/60)} мин. ${diff%60} сек.`;
-
-      document.getElementById('quiz-page').innerHTML = `
-        <div class="flex flex-col h-screen items-center justify-center p-10 text-center bg-white">
-          <div class="text-7xl mb-8 animate-bounce text-center">🚀</div>
-          <div class="text-xl font-black text-slate-800 mb-2 uppercase">Обработка данных</div>
-          <div class="text-slate-400 text-sm">Ваш отчет формируется...</div>
-        </div>`;
-
-      const finalData = { 
-        userName: state.user, 
-        score: state.score, 
-        total: state.qs.length, 
-        timeSpent: timeStr, 
-        errors: state.errors 
-      };
-
-      fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(finalData)
-      })
+      document.getElementById('quiz-page').innerHTML = `<div class="flex flex-col h-screen items-center justify-center p-10 text-center bg-white"><div class="text-7xl mb-8 animate-bounce">🚀</div><div class="text-xl font-black text-slate-800 uppercase">Обработка данных</div></div>`;
+      fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ userName: state.user, score: state.score, total: state.qs.length, timeSpent: timeStr, errors: state.errors }) })
       .then(() => {
-        document.getElementById('quiz-page').innerHTML = `
-          <div class="flex flex-col h-screen items-center justify-center p-6 text-center bg-white">
-            <div class="text-6xl mb-6">🎯</div>
-            <h2 class="text-3xl font-black text-v-blue mb-2 italic">ГОТОВО</h2>
-            <p class="text-slate-500 mb-8 text-sm font-medium italic">Результат зафиксирован в системе. Спасибо за участие!</p>
-            <div class="w-full max-w-xs bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden mx-auto">
-               <div class="absolute top-0 right-0 p-4 opacity-10 text-7xl italic">🏆</div>
-               <div class="relative z-10 text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1 text-center">Итог</div>
-               <div class="relative z-10 text-5xl font-black mb-4 text-center">${state.score} / ${state.qs.length}</div>
-               <div class="relative z-10 text-slate-400 font-bold uppercase text-[9px] text-center">Завершено за: ${timeStr}</div>
-            </div>
-            <button onclick="tg.close()" class="mt-10 text-slate-400 font-bold uppercase tracking-widest text-[10px] border-b border-slate-200 pb-1">Вернуться в чат</button>
-          </div>`;
+        document.getElementById('quiz-page').innerHTML = `<div class="flex flex-col h-screen items-center justify-center p-6 text-center bg-white"><div class="text-6xl mb-6">🎯</div><h2 class="text-3xl font-black text-v-blue mb-2 italic">ГОТОВО</h2><div class="w-full max-w-xs bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden mx-auto"><div class="relative z-10 text-5xl font-black mb-4">${state.score} / ${state.qs.length}</div><div class="relative z-10 text-slate-400 font-bold uppercase text-[9px]">Время: ${timeStr}</div></div><button onclick="tg.close()" class="mt-10 text-slate-400 font-bold uppercase text-[10px] border-b border-slate-200 pb-1">Закрыть</button></div>`;
       });
     }
   </script>
