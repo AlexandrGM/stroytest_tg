@@ -167,7 +167,6 @@
   const diff = Math.floor((new Date() - state.start) / 1000);
   const timeStr = `${Math.floor(diff/60)} мин. ${diff%60} сек.`;
 
-  // Экран с ракетой
   document.getElementById('quiz-page').innerHTML = `
     <div class="flex flex-col h-screen items-center justify-center p-10 text-center bg-white">
       <div class="text-8xl mb-8 animate-bounce text-center">🚀</div>
@@ -183,14 +182,17 @@
     errors: state.errors 
   };
 
-  // ИСПРАВЛЕНИЕ: Используем метод POST для отправки больших данных
+  // ОТПРАВКА: Используем text/plain, чтобы избежать проблем с CORS на MacBook/iPhone
   fetch(SCRIPT_URL, {
     method: 'POST',
-    mode: 'no-cors', // Это позволит обойти проблемы с CORS при POST запросах к Google
+    mode: 'no-cors',
+    headers: {
+      'Content-Type': 'text/plain'
+    },
     body: JSON.stringify(finalData)
   })
   .then(() => {
-    // В режиме no-cors мы не можем прочитать ответ, поэтому просто показываем финальный экран
+    // Показываем финальный экран (так как в no-cors ответ прочитать нельзя)
     document.getElementById('quiz-page').innerHTML = `
       <div class="flex flex-col h-screen items-center justify-center p-8 text-center bg-white">
         <div class="text-7xl mb-6">🎯</div>
@@ -198,15 +200,19 @@
         <p class="text-slate-500 mb-10 font-medium italic">Результат зафиксирован в системе.</p>
         <div class="w-full max-w-sm bg-slate-900 text-white p-10 rounded-[3rem] shadow-2xl relative overflow-hidden">
            <div class="absolute top-0 right-0 p-4 opacity-10 text-8xl italic">🏆</div>
-           <div class="relative z-10 text-sm font-bold text-blue-400 uppercase tracking-widest mb-2">Итог</div>
+           <div class="relative z-10 text-sm font-bold text-blue-400 uppercase tracking-widest mb-2 text-center">Итог</div>
            <div class="relative z-10 text-6xl font-black mb-6 text-center">${state.score} / ${state.qs.length}</div>
-           <div class="relative z-10 text-slate-400 font-bold uppercase text-[10px] text-center">Завершено за: ${timeStr}</div>
+           <div class="relative z-10 text-slate-400 font-bold uppercase text-[10px] text-center text-center">Завершено за: ${timeStr}</div>
         </div>
         <button onclick="tg.close()" class="mt-12 text-slate-400 font-bold uppercase tracking-widest text-xs border-b border-slate-200 pb-1">Вернуться в чат</button>
       </div>`;
   })
-  .catch(err => alert("Ошибка отправки: " + err));
+  .catch(err => {
+    console.error("Ошибка fetch:", err);
+    alert("Произошла ошибка при связи с сервером.");
+  });
 }
   </script>
 </body>
 </html>
+
