@@ -10,6 +10,7 @@
     html, body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; height: 100%; width: 100%; overflow: hidden; position: fixed; }
     .timer-bar { transition: width 1s linear; }
     main { height: calc(100vh - 85px); overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 30px; }
+    /* Видимый курсор */
     input { caret-color: #0039A6; }
     .ans-card:active { transform: scale(0.98); background-color: #F0F4F9; border-color: #0039A6; }
     .bg-v-blue { background-color: #0039A6; }
@@ -21,11 +22,11 @@
 
   <div id="login-page" class="min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-md bg-white rounded-[2rem] shadow-2xl p-8 border border-slate-100">
-      <div class="text-center mb-8"><h1 class="text-3xl font-black text-v-blue tracking-tight">СтройТест</h1></div>
-      <div class="space-y-3">
-        <input id="inp-name" type="text" placeholder="Введите ваше ФИО" class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none text-base">
-        <input id="inp-code" type="text" placeholder="Введите код доступа" class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none text-base">
-        <button id="btn-go" onclick="runApp()" class="w-full bg-v-blue text-white font-black py-4 rounded-xl shadow-lg uppercase text-sm">Войти</button>
+      <div class="text-center mb-8"><h1 class="text-3xl font-black text-v-blue tracking-tight uppercase">СтройТест</h1></div>
+      <div class="space-y-4">
+        <input id="inp-name" type="text" placeholder="Введите ваше ФИО" class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none text-base font-medium">
+        <input id="inp-code" type="text" placeholder="Введите код доступа" class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none text-base font-medium">
+        <button id="btn-go" onclick="runApp()" class="w-full bg-v-blue text-white font-black py-4 rounded-xl shadow-lg uppercase text-sm tracking-widest active:bg-blue-800 transition-colors">Войти</button>
       </div>
     </div>
   </div>
@@ -55,14 +56,31 @@
       const n = document.getElementById('inp-name').value;
       const c = document.getElementById('inp-code').value;
       if(!n || !c) return alert("Введите данные!");
-      document.getElementById('btn-go').innerText = "ЗАГРУЗКА...";
+      
+      // Интерактивность при входе
+      const btn = document.getElementById('btn-go');
+      btn.innerText = "ПРОВЕРКА...";
+      btn.disabled = true;
+      btn.classList.add('opacity-50');
+
       fetch(`${SCRIPT_URL}?action=init&name=${encodeURIComponent(n)}&code=${encodeURIComponent(c)}`)
         .then(r => r.json()).then(res => {
-          if(res.error) { alert(res.error); document.getElementById('btn-go').innerText = "ВОЙТИ"; return; }
+          if(res.error) { 
+            alert(res.error); 
+            btn.innerText = "ВОЙТИ"; 
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+            return; 
+          }
           state.qs = res.questions; state.user = res.userName; state.start = new Date();
           document.getElementById('login-page').classList.add('hidden');
           document.getElementById('quiz-page').classList.remove('hidden');
           render();
+        }).catch(() => {
+          alert("Ошибка связи");
+          btn.innerText = "ВОЙТИ";
+          btn.disabled = false;
+          btn.classList.remove('opacity-50');
         });
     }
 
@@ -75,7 +93,6 @@
         const txt = q[i] ? q[i].toString().trim() : "";
         if(txt) {
           const div = document.createElement('div');
-          // Шрифт ответов 16px (text-base) для iPhone
           div.className = "ans-card p-4 border-2 border-slate-100 rounded-2xl cursor-pointer bg-slate-50 font-semibold text-slate-700 shadow-sm text-base";
           div.innerText = txt; div.onclick = () => select(txt, q[6]);
           grid.appendChild(div);
@@ -106,10 +123,29 @@
     function finish() {
       const diff = Math.floor((new Date() - state.start) / 1000);
       const timeStr = `${Math.floor(diff/60)} мин. ${diff%60} сек.`;
-      document.getElementById('quiz-page').innerHTML = `<div class="flex flex-col h-screen items-center justify-center p-10 text-center bg-white"><div class="text-7xl mb-8 animate-bounce">🚀</div><div class="text-xl font-black text-slate-800 uppercase">Обработка данных</div></div>`;
+      
+      // ЭКРАН ЗАВЕРШЕНИЯ (Загрузка)
+      document.getElementById('quiz-page').innerHTML = `
+        <div class="flex flex-col h-screen items-center justify-center p-10 text-center bg-white">
+          <div class="text-7xl mb-8 animate-bounce">🚀</div>
+          <div class="text-xl font-black text-slate-800 uppercase tracking-tight">Обработка данных</div>
+          <div class="text-slate-400 text-sm mt-2">Ваш отчет формируется...</div>
+        </div>`;
+
       fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ userName: state.user, score: state.score, total: state.qs.length, timeSpent: timeStr, errors: state.errors }) })
       .then(() => {
-        document.getElementById('quiz-page').innerHTML = `<div class="flex flex-col h-screen items-center justify-center p-6 text-center bg-white"><div class="text-6xl mb-6">🎯</div><h2 class="text-3xl font-black text-v-blue mb-2 italic">ГОТОВО</h2><div class="w-full max-w-xs bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden mx-auto"><div class="relative z-10 text-5xl font-black mb-4">${state.score} / ${state.qs.length}</div><div class="relative z-10 text-slate-400 font-bold uppercase text-[9px]">Время: ${timeStr}</div></div><button onclick="tg.close()" class="mt-10 text-slate-400 font-bold uppercase text-[10px] border-b border-slate-200 pb-1">Закрыть</button></div>`;
+        // ЭКРАН ЗАВЕРШЕНИЯ (Финал)
+        document.getElementById('quiz-page').innerHTML = `
+          <div class="flex flex-col h-screen items-center justify-center p-6 text-center bg-white">
+            <div class="text-6xl mb-6">🎯</div>
+            <h2 class="text-3xl font-black text-v-blue mb-2 italic tracking-tight">ГОТОВО</h2>
+            <p class="text-slate-500 mb-8 text-sm font-medium italic">Результат зафиксирован в системе.<br>Спасибо за участие!</p>
+            <div class="w-full max-w-xs bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden mx-auto">
+               <div class="relative z-10 text-5xl font-black mb-4">${state.score} / ${state.qs.length}</div>
+               <div class="relative z-10 text-slate-400 font-bold uppercase text-[9px]">Время: ${timeStr}</div>
+            </div>
+            <button onclick="tg.close()" class="mt-10 text-slate-400 font-bold uppercase text-[10px] border-b border-slate-200 pb-1 tracking-widest">Закрыть</button>
+          </div>`;
       });
     }
   </script>
