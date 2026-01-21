@@ -14,12 +14,11 @@
       width: 100%; 
       overflow: hidden; 
       position: fixed; 
-      /* Поддержка безопасных зон iPhone */
       padding-bottom: env(safe-area-inset-bottom);
     }
     
     main { 
-      height: calc(100vh - 90px); /* Чуть увеличил отступ для шапки */
+      height: calc(100vh - 90px); 
       overflow-y: auto; 
       -webkit-overflow-scrolling: touch; 
       padding-bottom: 40px; 
@@ -27,32 +26,87 @@
 
     input { caret-color: #0039A6; }
     
-    /* Оптимизация анимации нажатия */
     .ans-card { transition: transform 0.1s, background-color 0.2s; }
     .ans-card:active { transform: scale(0.96); background-color: #F0F4F9; border-color: #0039A6; }
     
     .bg-v-blue { background-color: #0039A6; }
     .text-v-blue { color: #0039A6; }
     
-    /* Плавность таймера */
     .timer-bar { transition: width 0.3s linear; }
+
+    /* Стили для списка тем */
+    .topic-item::before {
+      content: "•";
+      color: #0039A6;
+      font-weight: bold;
+      display: inline-block;
+      width: 1em;
+      margin-left: -1em;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 select-none">
   
   <script>const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzffvbKhxSaefP5_dwRjh3O0M7dG40EzXU9Tcys-W21VIWxJw5reNgX9BU1yM5GTThN6w/exec";</script>
 
-  <div id="login-page" class="min-h-screen flex items-center justify-center p-4">
+  <div id="login-page" class="min-h-screen flex items-center justify-center p-4 animate-fade-in">
     <div class="w-full max-w-md bg-white rounded-[2rem] shadow-2xl p-8 border border-slate-100">
       <div class="text-center mb-8">
         <h1 class="text-3xl font-black text-v-blue tracking-tight uppercase">СтройТест</h1>
-        <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-2">Аттестация 2026</p>
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-2">Тестирование 2026</p>
       </div>
       <div class="space-y-4">
         <input id="inp-name" type="text" placeholder="Введите ваше ФИО" class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none text-base font-medium transition-colors">
         <input id="inp-code" type="text" placeholder="Введите код доступа" class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none text-base font-medium transition-colors">
         <button id="btn-go" onclick="runApp()" class="w-full bg-v-blue text-white font-black py-4 rounded-xl shadow-lg uppercase text-sm tracking-widest active:bg-blue-800 transition-transform active:scale-95">Войти</button>
       </div>
+    </div>
+  </div>
+
+  <div id="info-page" class="hidden min-h-screen flex flex-col bg-white overflow-y-auto">
+    <div class="p-6 max-w-2xl mx-auto w-full flex-grow">
+      <h2 class="text-2xl font-black text-slate-800 mb-6 uppercase tracking-tight">Информация о тесте</h2>
+      
+      <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100 mb-6">
+        <div class="flex items-center mb-3">
+          <span class="text-2xl mr-3">⏱</span>
+          <div>
+            <p class="text-xs text-slate-400 font-bold uppercase">Макс. продолжительность</p>
+            <p class="text-lg font-bold text-slate-800">20 минут</p>
+          </div>
+        </div>
+        <div class="flex items-center">
+          <span class="text-2xl mr-3">📝</span>
+          <div>
+            <p class="text-xs text-slate-400 font-bold uppercase">Объем теста</p>
+            <p class="text-lg font-bold text-slate-800">40 вопросов</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <p class="font-bold text-slate-800 mb-3 text-sm uppercase tracking-wide">Темы тестирования:</p>
+        <ul class="pl-4 space-y-2 text-sm text-slate-600 font-medium list-none">
+          <li class="topic-item">Строительные материалы и технологии</li>
+          <li class="topic-item">Проектная документация</li>
+          <li class="topic-item">Сметное дело</li>
+          <li class="topic-item">Регулирование строительной деятельности</li>
+          <li class="topic-item">Основные участники строительного процесса и порядок их взаимодействия</li>
+          <li class="topic-item">Исходно-разрешительная документация</li>
+          <li class="topic-item">Автоматизация и инновации в строительстве</li>
+        </ul>
+      </div>
+
+      <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start">
+        <span class="text-xl mr-3">⚠️</span>
+        <p class="text-sm text-blue-900 leading-snug">
+          На ответ выделяется <b>не более 30 сек</b>. По истечению времени система автоматически переходит к следующему вопросу (ответ засчитывается как "таймаут").
+        </p>
+      </div>
+    </div>
+
+    <div class="sticky bottom-0 p-5 bg-white/95 backdrop-blur border-t border-slate-100 max-w-2xl mx-auto w-full">
+      <button onclick="startQuiz()" class="w-full bg-v-blue text-white font-black py-4 rounded-xl shadow-lg uppercase text-sm tracking-widest active:scale-95 transition-transform">Продолжить</button>
     </div>
   </div>
 
@@ -80,24 +134,22 @@
     tg.expand(); 
     tg.ready();
 
-    // Добавили поле focusLoss для учета сворачивания
     let state = { 
       qs: [], 
       cur: 0, 
       score: 0, 
       timerInterval: null, 
-      endTime: 0, // Используем абсолютное время для точности
+      endTime: 0, 
       user: "", 
       start: null, 
       errors: [],
       focusLoss: 0 
     };
 
-    // АНТИ-ЧИТ: Отслеживание сворачивания
     document.addEventListener("visibilitychange", () => {
+      // Считаем сворачивания только если тест уже идет (quiz-page показан)
       if (document.hidden && state.start && document.getElementById('quiz-page').style.display !== 'none') {
         state.focusLoss++;
-        console.log("Уход со страницы: ", state.focusLoss);
       }
     });
 
@@ -106,7 +158,7 @@
       const c = document.getElementById('inp-code').value.trim();
       
       if(!n || !c) {
-        tg.HapticFeedback.notificationOccurred('error'); // Вибрация при ошибке
+        tg.HapticFeedback.notificationOccurred('error'); 
         return alert("Пожалуйста, заполните все поля!");
       }
       
@@ -121,18 +173,26 @@
             setLoading(false, btn);
             return; 
           }
+          // Сохраняем данные, но пока НЕ запускаем таймер
           state.qs = res.questions; 
           state.user = res.userName; 
-          state.start = new Date();
           
+          // Переход на экран ИНФОРМАЦИИ
           document.getElementById('login-page').classList.add('hidden');
-          document.getElementById('quiz-page').classList.remove('hidden');
-          render();
+          document.getElementById('info-page').classList.remove('hidden');
         })
         .catch(() => {
-          alert("Ошибка связи с сервером. Проверьте интернет.");
+          alert("Ошибка связи с сервером.");
           setLoading(false, btn);
         });
+    }
+
+    // НОВАЯ ФУНКЦИЯ: Запуск непосредственно теста
+    function startQuiz() {
+      state.start = new Date(); // Засекаем время только сейчас!
+      document.getElementById('info-page').classList.add('hidden');
+      document.getElementById('quiz-page').classList.remove('hidden');
+      render();
     }
 
     function setLoading(isLoading, btn) {
@@ -155,7 +215,6 @@
       const grid = document.getElementById('grid-ans'); 
       grid.innerHTML = '';
       
-      // Генерация карточек
       [1,2,3,4,5].forEach(i => {
         const txt = q[i] ? q[i].toString().trim() : "";
         if(txt) {
@@ -163,7 +222,7 @@
           div.className = "ans-card p-4 border-2 border-slate-100 rounded-2xl cursor-pointer bg-slate-50 font-semibold text-slate-700 shadow-sm text-sm md:text-base select-none";
           div.innerText = txt; 
           div.onclick = () => {
-            tg.HapticFeedback.impactOccurred('light'); // Легкая вибрация при клике
+            tg.HapticFeedback.impactOccurred('light'); 
             select(txt, q[6]);
           };
           grid.appendChild(div);
@@ -173,13 +232,9 @@
       startTimer(q[6]);
     }
 
-    // НОВЫЙ ТАЙМЕР: На основе системного времени (защита от сворачивания)
     function startTimer(correct) {
       clearInterval(state.timerInterval);
-      
-      // Устанавливаем целевое время (сейчас + 30 сек)
       state.endTime = Date.now() + 30000;
-      
       updateTimerUI(30);
 
       state.timerInterval = setInterval(() => {
@@ -194,7 +249,7 @@
         } else {
           updateTimerUI(leftSec);
         }
-      }, 200); // Обновляем чаще для плавности, но логика на времени
+      }, 200); 
     }
 
     function updateTimerUI(seconds) {
@@ -203,10 +258,9 @@
       const bar = document.getElementById('bar-timer');
       bar.style.width = pct + '%';
       
-      // Смена цвета при малом времени
       if (seconds <= 5) {
         bar.className = "timer-bar bg-red-500 h-full w-full";
-        if(seconds > 0 && seconds % 2 !== 0) tg.HapticFeedback.selectionChanged(); // Тиканье вибрацией
+        if(seconds > 0 && seconds % 2 !== 0) tg.HapticFeedback.selectionChanged(); 
       } else {
         bar.className = "timer-bar bg-v-blue h-full w-full";
       }
@@ -214,7 +268,6 @@
 
     function select(val, correct) {
       clearInterval(state.timerInterval);
-      
       if(val.toString().trim() !== correct.toString().trim()) {
         state.errors.push({ q: state.qs[state.cur][0], user: val, right: correct });
         tg.HapticFeedback.notificationOccurred('warning');
@@ -236,7 +289,6 @@
       const diffSec = Math.floor((diffMs % 60000) / 1000);
       const timeStr = `${diffMin} мин. ${diffSec} сек.`;
       
-      // UI Загрузки
       document.getElementById('quiz-page').innerHTML = `
         <div class="flex flex-col h-screen items-center justify-center p-10 text-center bg-white animate-fade-in">
           <div class="text-7xl mb-8 animate-bounce">🚀</div>
@@ -244,15 +296,13 @@
           <div class="text-slate-400 text-sm mt-2">Сохраняем результаты...</div>
         </div>`;
 
-      // Добавили отправку данных о потере фокуса (state.focusLoss)
-      // Данные передаются как Plain Text для обхода CORS
       const payload = JSON.stringify({ 
         userName: state.user, 
         score: state.score, 
         total: state.qs.length, 
         timeSpent: timeStr, 
         errors: state.errors,
-        focusLoss: state.focusLoss // Передаем на сервер
+        focusLoss: state.focusLoss 
       });
 
       fetch(SCRIPT_URL, { 
@@ -263,15 +313,13 @@
       })
       .then(() => {
         tg.HapticFeedback.notificationOccurred('success');
-        
-        // UI Результата
         document.getElementById('quiz-page').innerHTML = `
           <div class="flex flex-col h-screen items-center justify-center p-6 text-center bg-white">
             <div class="text-6xl mb-6">🎯</div>
             <h2 class="text-3xl font-black text-v-blue mb-2 italic tracking-tight">ГОТОВО</h2>
             <p class="text-slate-500 mb-8 text-sm font-medium italic">
               Результат зафиксирован.<br>
-              ${state.focusLoss > 0 ? `<span class="text-red-500 text-xs mt-2 block">Зафиксировано сворачиваний: ${state.focusLoss}</span>` : ''}
+              ${state.focusLoss > 0 ? `<span class="text-red-500 text-xs mt-2 block">Сворачиваний: ${state.focusLoss}</span>` : ''}
             </p>
             <div class="w-full max-w-xs bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden mx-auto transform transition hover:scale-105">
                <div class="absolute top-0 right-0 p-4 opacity-10 text-7xl italic">🏆</div>
