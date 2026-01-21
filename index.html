@@ -7,146 +7,281 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
   <style>
-    html, body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; height: 100%; width: 100%; overflow: hidden; position: fixed; }
-    .timer-bar { transition: width 1s linear; }
-    main { height: calc(100vh - 85px); overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 30px; }
-    /* Видимый курсор */
+    html, body { 
+      font-family: 'Inter', sans-serif; 
+      -webkit-tap-highlight-color: transparent; 
+      height: 100%; 
+      width: 100%; 
+      overflow: hidden; 
+      position: fixed; 
+      /* Поддержка безопасных зон iPhone */
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    main { 
+      height: calc(100vh - 90px); /* Чуть увеличил отступ для шапки */
+      overflow-y: auto; 
+      -webkit-overflow-scrolling: touch; 
+      padding-bottom: 40px; 
+    }
+
     input { caret-color: #0039A6; }
-    .ans-card:active { transform: scale(0.98); background-color: #F0F4F9; border-color: #0039A6; }
+    
+    /* Оптимизация анимации нажатия */
+    .ans-card { transition: transform 0.1s, background-color 0.2s; }
+    .ans-card:active { transform: scale(0.96); background-color: #F0F4F9; border-color: #0039A6; }
+    
     .bg-v-blue { background-color: #0039A6; }
     .text-v-blue { color: #0039A6; }
+    
+    /* Плавность таймера */
+    .timer-bar { transition: width 0.3s linear; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 select-none">
+  
   <script>const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzffvbKhxSaefP5_dwRjh3O0M7dG40EzXU9Tcys-W21VIWxJw5reNgX9BU1yM5GTThN6w/exec";</script>
 
   <div id="login-page" class="min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-md bg-white rounded-[2rem] shadow-2xl p-8 border border-slate-100">
-      <div class="text-center mb-8"><h1 class="text-3xl font-black text-v-blue tracking-tight uppercase">СтройТест</h1></div>
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-black text-v-blue tracking-tight uppercase">СтройТест</h1>
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-2">Аттестация 2026</p>
+      </div>
       <div class="space-y-4">
-        <input id="inp-name" type="text" placeholder="Введите ваше ФИО" class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none text-base font-medium">
-        <input id="inp-code" type="text" placeholder="Введите код доступа" class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none text-base font-medium">
-        <button id="btn-go" onclick="runApp()" class="w-full bg-v-blue text-white font-black py-4 rounded-xl shadow-lg uppercase text-sm tracking-widest active:bg-blue-800 transition-colors">Войти</button>
+        <input id="inp-name" type="text" placeholder="Введите ваше ФИО" class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none text-base font-medium transition-colors">
+        <input id="inp-code" type="text" placeholder="Введите код доступа" class="w-full p-4 bg-slate-50 border-2 border-transparent rounded-xl focus:border-v-blue outline-none text-base font-medium transition-colors">
+        <button id="btn-go" onclick="runApp()" class="w-full bg-v-blue text-white font-black py-4 rounded-xl shadow-lg uppercase text-sm tracking-widest active:bg-blue-800 transition-transform active:scale-95">Войти</button>
       </div>
     </div>
   </div>
 
   <div id="quiz-page" class="hidden min-h-screen flex flex-col bg-white">
-    <div class="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b px-5 py-3 max-w-2xl mx-auto w-full">
+    <div class="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b px-5 py-3 max-w-2xl mx-auto w-full shadow-sm">
       <div class="flex justify-between items-end mb-2">
-        <span id="txt-step" class="text-[10px] font-black text-v-blue uppercase italic">Вопрос...</span>
+        <span id="txt-step" class="text-[10px] font-black text-v-blue uppercase italic">Загрузка...</span>
         <div class="text-right">
           <span id="txt-timer" class="text-2xl font-black text-slate-700 leading-none">30</span>
           <span class="text-[9px] text-slate-400 block font-bold uppercase">сек</span>
         </div>
       </div>
-      <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div id="bar-timer" class="timer-bar bg-v-blue h-full w-full"></div></div>
+      <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+        <div id="bar-timer" class="timer-bar bg-v-blue h-full w-full"></div>
+      </div>
     </div>
     <main class="p-5 max-w-2xl mx-auto w-full">
-      <h2 id="txt-q" class="text-[22px] font-bold leading-tight mb-6 text-slate-800"></h2>
-      <div id="grid-ans" class="space-y-2.5"></div>
+      <h2 id="txt-q" class="text-[20px] md:text-[22px] font-bold leading-tight mb-6 text-slate-800"></h2>
+      <div id="grid-ans" class="space-y-3"></div>
     </main>
   </div>
 
   <script>
-    const tg = window.Telegram.WebApp; tg.expand(); tg.ready();
-    let state = { qs: [], cur: 0, score: 0, timer: null, left: 30, user: "", start: null, errors: [] };
+    const tg = window.Telegram.WebApp; 
+    tg.expand(); 
+    tg.ready();
+
+    // Добавили поле focusLoss для учета сворачивания
+    let state = { 
+      qs: [], 
+      cur: 0, 
+      score: 0, 
+      timerInterval: null, 
+      endTime: 0, // Используем абсолютное время для точности
+      user: "", 
+      start: null, 
+      errors: [],
+      focusLoss: 0 
+    };
+
+    // АНТИ-ЧИТ: Отслеживание сворачивания
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && state.start && document.getElementById('quiz-page').style.display !== 'none') {
+        state.focusLoss++;
+        console.log("Уход со страницы: ", state.focusLoss);
+      }
+    });
 
     function runApp() {
-      const n = document.getElementById('inp-name').value;
-      const c = document.getElementById('inp-code').value;
-      if(!n || !c) return alert("Введите данные!");
+      const n = document.getElementById('inp-name').value.trim();
+      const c = document.getElementById('inp-code').value.trim();
       
-      // Интерактивность при входе
+      if(!n || !c) {
+        tg.HapticFeedback.notificationOccurred('error'); // Вибрация при ошибке
+        return alert("Пожалуйста, заполните все поля!");
+      }
+      
       const btn = document.getElementById('btn-go');
-      btn.innerText = "ПРОВЕРКА...";
-      btn.disabled = true;
-      btn.classList.add('opacity-50');
+      setLoading(true, btn);
 
       fetch(`${SCRIPT_URL}?action=init&name=${encodeURIComponent(n)}&code=${encodeURIComponent(c)}`)
-        .then(r => r.json()).then(res => {
+        .then(r => r.json())
+        .then(res => {
           if(res.error) { 
             alert(res.error); 
-            btn.innerText = "ВОЙТИ"; 
-            btn.disabled = false;
-            btn.classList.remove('opacity-50');
+            setLoading(false, btn);
             return; 
           }
-          state.qs = res.questions; state.user = res.userName; state.start = new Date();
+          state.qs = res.questions; 
+          state.user = res.userName; 
+          state.start = new Date();
+          
           document.getElementById('login-page').classList.add('hidden');
           document.getElementById('quiz-page').classList.remove('hidden');
           render();
-        }).catch(() => {
-          alert("Ошибка связи");
-          btn.innerText = "ВОЙТИ";
-          btn.disabled = false;
-          btn.classList.remove('opacity-50');
+        })
+        .catch(() => {
+          alert("Ошибка связи с сервером. Проверьте интернет.");
+          setLoading(false, btn);
         });
+    }
+
+    function setLoading(isLoading, btn) {
+      if(isLoading) {
+        btn.innerText = "ПРОВЕРКА...";
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+      } else {
+        btn.innerText = "ВОЙТИ";
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
     }
 
     function render() {
       const q = state.qs[state.cur];
       document.getElementById('txt-step').innerText = `Вопрос ${state.cur + 1} из ${state.qs.length}`;
       document.getElementById('txt-q').innerText = q[0];
-      const grid = document.getElementById('grid-ans'); grid.innerHTML = '';
+      
+      const grid = document.getElementById('grid-ans'); 
+      grid.innerHTML = '';
+      
+      // Генерация карточек
       [1,2,3,4,5].forEach(i => {
         const txt = q[i] ? q[i].toString().trim() : "";
         if(txt) {
           const div = document.createElement('div');
-          div.className = "ans-card p-4 border-2 border-slate-100 rounded-2xl cursor-pointer bg-slate-50 font-semibold text-slate-700 shadow-sm text-base";
-          div.innerText = txt; div.onclick = () => select(txt, q[6]);
+          div.className = "ans-card p-4 border-2 border-slate-100 rounded-2xl cursor-pointer bg-slate-50 font-semibold text-slate-700 shadow-sm text-sm md:text-base select-none";
+          div.innerText = txt; 
+          div.onclick = () => {
+            tg.HapticFeedback.impactOccurred('light'); // Легкая вибрация при клике
+            select(txt, q[6]);
+          };
           grid.appendChild(div);
         }
       });
-      countdown(q[6]);
+      
+      startTimer(q[6]);
     }
 
-    function countdown(correct) {
-      clearInterval(state.timer); state.left = 30; refreshUI();
-      state.timer = setInterval(() => { state.left--; refreshUI(); if(state.left <= 0) select("Таймаут", correct); }, 1000);
+    // НОВЫЙ ТАЙМЕР: На основе системного времени (защита от сворачивания)
+    function startTimer(correct) {
+      clearInterval(state.timerInterval);
+      
+      // Устанавливаем целевое время (сейчас + 30 сек)
+      state.endTime = Date.now() + 30000;
+      
+      updateTimerUI(30);
+
+      state.timerInterval = setInterval(() => {
+        const now = Date.now();
+        const leftMs = state.endTime - now;
+        const leftSec = Math.ceil(leftMs / 1000);
+
+        if (leftSec <= 0) {
+          clearInterval(state.timerInterval);
+          updateTimerUI(0);
+          select("Таймаут (время истекло)", correct);
+        } else {
+          updateTimerUI(leftSec);
+        }
+      }, 200); // Обновляем чаще для плавности, но логика на времени
     }
 
-    function refreshUI() {
-      document.getElementById('txt-timer').innerText = state.left;
-      document.getElementById('bar-timer').style.width = (state.left / 30 * 100) + '%';
-      document.getElementById('bar-timer').className = state.left <= 5 ? "timer-bar bg-red-600 h-full w-full" : "timer-bar bg-v-blue h-full w-full";
+    function updateTimerUI(seconds) {
+      document.getElementById('txt-timer').innerText = seconds;
+      const pct = (seconds / 30) * 100;
+      const bar = document.getElementById('bar-timer');
+      bar.style.width = pct + '%';
+      
+      // Смена цвета при малом времени
+      if (seconds <= 5) {
+        bar.className = "timer-bar bg-red-500 h-full w-full";
+        if(seconds > 0 && seconds % 2 !== 0) tg.HapticFeedback.selectionChanged(); // Тиканье вибрацией
+      } else {
+        bar.className = "timer-bar bg-v-blue h-full w-full";
+      }
     }
 
     function select(val, correct) {
-      clearInterval(state.timer);
-      if(val.toString().trim() !== correct.toString().trim()) state.errors.push({ q: state.qs[state.cur][0], user: val, right: correct });
-      else state.score++;
+      clearInterval(state.timerInterval);
+      
+      if(val.toString().trim() !== correct.toString().trim()) {
+        state.errors.push({ q: state.qs[state.cur][0], user: val, right: correct });
+        tg.HapticFeedback.notificationOccurred('warning');
+      } else {
+        state.score++;
+      }
+      
       state.cur++;
-      if(state.cur < state.qs.length) render(); else finish();
+      if(state.cur < state.qs.length) {
+        render();
+      } else {
+        finish();
+      }
     }
 
     function finish() {
-      const diff = Math.floor((new Date() - state.start) / 1000);
-      const timeStr = `${Math.floor(diff/60)} мин. ${diff%60} сек.`;
+      const diffMs = new Date() - state.start;
+      const diffMin = Math.floor(diffMs / 60000);
+      const diffSec = Math.floor((diffMs % 60000) / 1000);
+      const timeStr = `${diffMin} мин. ${diffSec} сек.`;
       
-      // ЭКРАН ЗАВЕРШЕНИЯ (Загрузка)
+      // UI Загрузки
       document.getElementById('quiz-page').innerHTML = `
-        <div class="flex flex-col h-screen items-center justify-center p-10 text-center bg-white">
+        <div class="flex flex-col h-screen items-center justify-center p-10 text-center bg-white animate-fade-in">
           <div class="text-7xl mb-8 animate-bounce">🚀</div>
-          <div class="text-xl font-black text-slate-800 uppercase tracking-tight">Обработка данных</div>
-          <div class="text-slate-400 text-sm mt-2">Ваш отчет формируется...</div>
+          <div class="text-xl font-black text-slate-800 uppercase tracking-tight">Финализация</div>
+          <div class="text-slate-400 text-sm mt-2">Сохраняем результаты...</div>
         </div>`;
 
-      fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ userName: state.user, score: state.score, total: state.qs.length, timeSpent: timeStr, errors: state.errors }) })
+      // Добавили отправку данных о потере фокуса (state.focusLoss)
+      // Данные передаются как Plain Text для обхода CORS
+      const payload = JSON.stringify({ 
+        userName: state.user, 
+        score: state.score, 
+        total: state.qs.length, 
+        timeSpent: timeStr, 
+        errors: state.errors,
+        focusLoss: state.focusLoss // Передаем на сервер
+      });
+
+      fetch(SCRIPT_URL, { 
+        method: 'POST', 
+        mode: 'no-cors', 
+        headers: { 'Content-Type': 'text/plain' }, 
+        body: payload 
+      })
       .then(() => {
-        // ЭКРАН ЗАВЕРШЕНИЯ (Финал)
+        tg.HapticFeedback.notificationOccurred('success');
+        
+        // UI Результата
         document.getElementById('quiz-page').innerHTML = `
           <div class="flex flex-col h-screen items-center justify-center p-6 text-center bg-white">
             <div class="text-6xl mb-6">🎯</div>
             <h2 class="text-3xl font-black text-v-blue mb-2 italic tracking-tight">ГОТОВО</h2>
-            <p class="text-slate-500 mb-8 text-sm font-medium italic">Результат зафиксирован в системе.<br>Спасибо за участие!</p>
-            <div class="w-full max-w-xs bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden mx-auto">
+            <p class="text-slate-500 mb-8 text-sm font-medium italic">
+              Результат зафиксирован.<br>
+              ${state.focusLoss > 0 ? `<span class="text-red-500 text-xs mt-2 block">Зафиксировано сворачиваний: ${state.focusLoss}</span>` : ''}
+            </p>
+            <div class="w-full max-w-xs bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden mx-auto transform transition hover:scale-105">
+               <div class="absolute top-0 right-0 p-4 opacity-10 text-7xl italic">🏆</div>
                <div class="relative z-10 text-5xl font-black mb-4">${state.score} / ${state.qs.length}</div>
                <div class="relative z-10 text-slate-400 font-bold uppercase text-[9px]">Время: ${timeStr}</div>
             </div>
-            <button onclick="tg.close()" class="mt-10 text-slate-400 font-bold uppercase text-[10px] border-b border-slate-200 pb-1 tracking-widest">Закрыть</button>
+            <button onclick="tg.close()" class="mt-12 text-slate-400 font-bold uppercase text-[10px] border-b border-slate-200 pb-1 tracking-widest hover:text-slate-600">Закрыть</button>
           </div>`;
-      });
+      })
+      .catch(e => alert("Ошибка отправки, но тест пройден. Сделайте скриншот."));
     }
   </script>
 </body>
